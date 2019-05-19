@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Lubble</string>
+    <string name="picture">Picture</string>
+    <string name="description_info">Info</string>
+    <string name="request_permission">This sample needs camera permission.</string>
+    <string name="camera_error">This device doesn\'t support Camera2 API.</string>
+    <string name="intro_message">intro message</string>
+    <string name="fragment_camera2">Camera2</string>
+    <string name="fragment_view_stickers">View Stickers</string>
+    <string name="lubble">Lubble</string>
+</resources>
