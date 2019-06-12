@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3F51B5</color>
+   <!-- <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+-->
+    <color name="colorPrimaryDark">#18276e</color>
+    <color name="colorPrimaryCenter">#214D9E</color>
+    <color name="colorPrimary">#449af5</color>
+    <color name="colorAccent">#ffff</color>
 
     <color name="red2">#c40909</color>
     <color name="red3">#e50909</color>
@@ -23,3 +28,5 @@
     <color name="DarkGrey">#737373 </color>
     <color name="Black">#000 </color>
 </resources>
+
+
