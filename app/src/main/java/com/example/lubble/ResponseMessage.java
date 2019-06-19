@@ -5,6 +5,9 @@ public class ResponseMessage {
     String text;
     boolean isMe;
 
+    public ResponseMessage() {
+    }
+
     public ResponseMessage(String text, boolean isMe) {
         this.text = text;
         this.isMe = isMe;
@@ -24,6 +27,14 @@ public class ResponseMessage {
 
     public void setMe(boolean me) {
         isMe = me;
+    }
+
+    @Override
+    public String toString() {
+        return "ResponseMessage{" +
+                "text='" + text + '\'' +
+                ", isMe=" + isMe +
+                '}';
     }
 
 }

@@ -3,6 +3,7 @@ package com.example.lubble;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -11,12 +12,29 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 /*import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.simple.SimpleLoggerContextFactory;*/
+import com.firebase.ui.database.FirebaseRecyclerAdapter;
+import com.firebase.ui.database.FirebaseRecyclerOptions;
+import com.firebase.ui.database.SnapshotParser;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.Query;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -43,17 +61,21 @@ public class ChatActivity extends AppCompatActivity implements AIListener {
     MessageAdapter messageAdapter;
     List<ResponseMessage> responseMessageList;
 
+    private LinearLayoutManager linearLayoutManager;
+    private FirebaseRecyclerAdapter adapter;
     /*static {
         LogManager.setFactory(new SimpleLoggerContextFactory());
         // but SimpleLoggerContextFactory does not allow to override log level in runtime
         // I guess you would need to play with root logger, but it's easier to set it in resource file
     }*/
+    private DatabaseReference databaseReference;
+    private Gson gson;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
-        int permission = ContextCompat.checkSelfPermission(this,
+        /*int permission = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.RECORD_AUDIO);
 
         if (permission != PackageManager.PERMISSION_GRANTED) {
@@ -88,12 +110,162 @@ public class ChatActivity extends AppCompatActivity implements AIListener {
                     messageAdapter.notifyDataSetChanged();
                     RetrieveFeedTask task = new RetrieveFeedTask();
                     task.execute(responseMessage.text);
-                   /* if (!isLastVisible())
-                        recyclerView.smoothScrollToPosition(messageAdapter.getItemCount() - 1);*/
+                   *//* if (!isLastVisible())
+                        recyclerView.smoothScrollToPosition(messageAdapter.getItemCount() - 1);*//*
+                }
+                return false;
+            }
+        });*/
+        gson = new Gson();
+        databaseReference = FirebaseDatabase.getInstance().getReference();
+        userInput = findViewById(R.id.userInput);
+        recyclerView = findViewById(R.id.conversation);
+        linearLayoutManager = new LinearLayoutManager(this,LinearLayoutManager.VERTICAL,false);
+        linearLayoutManager.setStackFromEnd(true);
+        recyclerView.setLayoutManager(linearLayoutManager);
+        recyclerView.setHasFixedSize(true);
+        fetch();
+
+        userInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEND) {
+                    final String userMessage = userInput.getText().toString();
+                    Long time = System.currentTimeMillis();
+                    ResponseMessage responseMessage = new ResponseMessage(userMessage,true);
+
+                    String json = gson.toJson(responseMessage);
+                    databaseReference.child("posts").child(time.toString()).setValue(responseMessage)
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    userInput.setText("");
+                                    //userInput.clearComposingText();
+                                    //messageAdapter.notifyDataSetChanged();
+                                    RetrieveFeedTask task = new RetrieveFeedTask();
+                                    task.execute(userMessage);
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.d("error",e.toString());
+                                }
+                            });
+                    //recyclerView.smoothScrollToPosition(messageAdapter.getItemCount() - 1);
                 }
                 return false;
             }
         });
+    }
+
+    private void fetch() {
+        DatabaseReference query = FirebaseDatabase.getInstance()
+                .getReference()
+                .child("posts");
+
+        final FirebaseRecyclerOptions<ResponseMessage> options =
+                new FirebaseRecyclerOptions.Builder<ResponseMessage>()
+                        .setQuery(query, new SnapshotParser<ResponseMessage>() {
+                            @NonNull
+                            @Override
+                            public ResponseMessage parseSnapshot(@NonNull DataSnapshot snapshot) {
+                                Log.d("parseSnapshot",snapshot.toString());
+
+                                //ResponseMessage responseMessage = gson.fromJson((JsonElement) snapshot.getValue(),ResponseMessage.class);
+                                ResponseMessage responseMessage = snapshot.getValue(ResponseMessage.class);
+                                Log.d("parse",responseMessage.toString());
+                                return responseMessage;
+                            }
+                        }).build();
+
+
+        adapter = new FirebaseRecyclerAdapter<ResponseMessage, ViewHolder>(options) {
+            @Override
+            public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                View view = LayoutInflater.from(parent.getContext())
+                        .inflate(viewType, parent, false);
+
+                return new ViewHolder(view);
+            }
+
+            @Override
+            public int getItemCount() {
+                return super.getItemCount();
+            }
+
+            @Override
+            protected void onBindViewHolder(ViewHolder holder, final int position, ResponseMessage model) {
+                Log.d("itemcount",getItemCount()+"!");
+                //recyclerView.smoothScrollToPosition(adapter.getItemCount() - 1);
+                holder.setTxtTitle(model.getText());
+
+               /* if (!isLastVisible()) {
+                    Log.d("lastVisible","yo");
+                    recyclerView.smoothScrollToPosition(adapter.getItemCount() - 1);
+                }*/
+                /*holder.setTxtDesc(model.getmDesc());
+
+                holder.root.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Toast.makeText(ChatActivity.this, String.valueOf(position), Toast.LENGTH_SHORT).show();
+                    }
+                });*/
+            }
+
+            @Override
+            public int getItemViewType(int position) {
+                /*return super.getItemViewType(position);*/
+                if(options.getSnapshots().get(position).isMe)
+                {
+                    return R.layout.me_bubble;
+                }
+                return R.layout.bot_bubble;
+            }
+
+        };
+        adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                linearLayoutManager.smoothScrollToPosition(recyclerView, null, adapter.getItemCount());
+            }
+        });
+        recyclerView.setAdapter(adapter);
+    }
+
+    public class ViewHolder extends RecyclerView.ViewHolder {
+        public LinearLayout root;
+        public TextView txtTitle;
+        public TextView txtDesc;
+
+        public ViewHolder(View itemView) {
+            super(itemView);
+            /*root = itemView.findViewById(R.id.list_root);*/
+            txtTitle = itemView.findViewById(R.id.textMessage);
+            /*txtDesc = itemView.findViewById(R.id.list_desc);*/
+        }
+
+        public void setTxtTitle(String string) {
+            txtTitle.setText(string);
+        }
+
+
+        /*public void setTxtDesc(String string) {
+            txtDesc.setText(string);
+        }*/
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        adapter.startListening();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        adapter.stopListening();
     }
 
     class RetrieveFeedTask extends AsyncTask<String, Void, String> {
@@ -118,12 +290,13 @@ public class ChatActivity extends AppCompatActivity implements AIListener {
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
             //outputText.setText(s);
-            ResponseMessage responseMessage2 = new ResponseMessage(s, false);
+            Log.d("onPOstExecute",s+"!");
+            /*ResponseMessage responseMessage2 = new ResponseMessage(s, false);
             responseMessageList.add(responseMessage2);
             messageAdapter.notifyDataSetChanged();
 
             if (!isLastVisible())
-                recyclerView.smoothScrollToPosition(messageAdapter.getItemCount() - 1);
+                recyclerView.smoothScrollToPosition(messageAdapter.getItemCount() - 1);*/
         }
     }
 
